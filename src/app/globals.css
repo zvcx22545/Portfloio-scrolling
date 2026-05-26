@@ -1,27 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 260 100% 3%;
+  --foreground: 0 0% 95%;
+  --card: 260 50% 6%;
+  --card-foreground: 0 0% 95%;
+  --popover: 260 50% 6%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 280 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 260 30% 10%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 260 20% 12%;
+  --muted-foreground: 0 0% 50%;
+  --accent: 280 80% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 260 20% 12%;
+  --input: 260 20% 12%;
+  --ring: 280 100% 50%;
+  --radius: 0.75rem;
+
+  --neon-purple: #b100ff;
+  --neon-blue: #00d0ff;
+  --neon-pink: #ff0080;
+  --neon-violet: #8b5cf6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
+
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #050010;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #050010;
+}
+::-webkit-scrollbar-thumb {
+  background: #b100ff44;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b100ff88;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(139, 92, 246, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+/* Glow text */
+.glow-text {
+  text-shadow: 0 0 40px rgba(177, 0, 255, 0.5), 0 0 80px rgba(177, 0, 255, 0.2);
+}
+
+.glow-blue {
+  text-shadow: 0 0 40px rgba(0, 208, 255, 0.5);
+}
+
+/* Neon border glow */
+.neon-border {
+  box-shadow: 0 0 20px rgba(177, 0, 255, 0.2), inset 0 0 20px rgba(177, 0, 255, 0.05);
+}
+
+/* Animated gradient background */
+.gradient-bg {
+  background: linear-gradient(135deg, #050010 0%, #0d0025 50%, #050010 100%);
+}
+
+/* Cinematic text gradient */
+.gradient-text {
+  background: linear-gradient(135deg, #c084fc, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-blue {
+  background: linear-gradient(135deg, #60a5fa, #38bdf8, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes floatReverse {
+  0%, 100% { transform: translateY(-10px); }
+  50% { transform: translateY(10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-float-reverse { animation: floatReverse 7s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Shimmer skeleton */
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Section dividers */
+.section-divider {
+  background: linear-gradient(90deg, transparent, rgba(177, 0, 255, 0.3), transparent);
+  height: 1px;
+  width: 100%;
+}
+
+/* GPU acceleration hints */
+.will-change-transform { will-change: transform; }
+.transform-gpu { transform: translateZ(0); }
+
+/* Canvas full coverage */
+canvas {
+  display: block;
+}
+
+/* Remove default button outlines for our custom UI */
+button:focus-visible {
+  outline: 2px solid #b100ff;
+  outline-offset: 2px;
+}
+
+/* Ensure the cursor: none applies everywhere for our custom cursor */
+a, button, [role="button"] {
+  cursor: none;
 }
