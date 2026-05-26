@@ -61,7 +61,9 @@ export function useVideoScrub(
       scrollTriggerInstance = ScrollTrigger.create({
         trigger: trigger,
         start: "top top",
-        end: "bottom bottom",
+        end: "+=350%",         // แมทช์กับความยาวสกรอลล์เฟรมใน hook ภาพนิ่ง
+        pin: true,             // ปักหมุดตรึงหน้าจอ Hero
+        pinSpacing: true,      // ดันส่วนเนื้อหาอื่นๆ ลงไปด้านล่าง
         scrub: true,
         onUpdate: (self) => {
           // Calculate the target time based on scroll progress

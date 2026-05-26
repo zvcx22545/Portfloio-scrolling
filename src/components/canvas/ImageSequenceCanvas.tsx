@@ -66,7 +66,7 @@ export default function ImageSequenceCanvas({
           scrollTrigger: {
             trigger: trigger,
             start: "top top",
-            end: "bottom bottom",
+            end: "+=350%", // แมทช์ตรงกันตามสกรอลล์พิน
             scrub: true, // ผูกตรงตามการเลื่อนเมาส์
           },
         }
@@ -110,9 +110,15 @@ export default function ImageSequenceCanvas({
           isReady ? "opacity-0 pointer-events-none scale-105" : "opacity-100"
         }`}
       >
-        {/* แสงนีออนสะท้อนด้านหลังสร้างความหรูหรานุ่มนวล */}
-        <div className="absolute w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute w-[200px] h-[200px] bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+        {/* แสงนีออนสะท้อนด้านหลังสร้างความหรูหรานุ่มนวล (ใช้ Radial Gradient แทน CSS blur filter เพื่อป้องกันอาการกระตุกตอนขยับเมาส์) */}
+        <div 
+          className="absolute w-[350px] h-[350px] rounded-full pointer-events-none" 
+          style={{ background: "radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%)" }}
+        />
+        <div 
+          className="absolute w-[250px] h-[250px] rounded-full pointer-events-none" 
+          style={{ background: "radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%)" }}
+        />
 
         {/* คอนเทนต์หลักสำหรับผู้ควบคุมการโหลด */}
         <div className="relative z-10 flex flex-col items-center max-w-xs w-full px-6">

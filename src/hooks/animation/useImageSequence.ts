@@ -201,36 +201,64 @@ export function useImageSequence({
     // 3. เริ่มทำการ Preload รูปภาพทั้งหมด
     const preloadedImages = frameIndices.map((originalIndex) => {
       const img = new Image()
-      
-      // แปลงตัวเลข เช่น 5 ให้กลายเป็น "005" (3 หลัก) เพื่อให้ตรงกับชื่อรูปไฟล์จริง
       const paddedIndex = String(originalIndex).padStart(padLength, "0")
-      img.src = `${prefix}${paddedIndex}.webp`
       
-      // [ทีเด็ดลดอาการกระตุก] ใช้ฟังก์ชัน img.decode() ซึ่งจะบอกเบราว์เซอร์ให้ทำการ "ดีโค้ดภาพแปลความหมายเป็นบิตแมป"
-      // บนเทรดข้างหลัง (Background Thread) ล่วงหน้าก่อนที่จะส่งไปวาด 
-      // ทำให้เมื่อผู้ใช้สกรอลล์เลื่อนหน้าจอ ภาพจะวาดได้ลื่นไหล ไม่ต้องหยุดรอการถอดรหัสรูปภาพบนเทรดหลักอีกต่อไป
-      const decodePromise = img.decode()
-        .then(() => {
-          checkLoadingProgress()
-        })
-        .catch((err) => {
-          console.warn(`Fallback: แปลงรหัสล่วงหน้าล้มเหลวสำหรับเฟรมที่ ${originalIndex} กำลังเปลี่ยนไปโหลดแบบธรรมดา.`, err)
-          // หากเบราว์เซอร์รุ่นเก่ามากไม่รองรับ ให้ถอยกลับมาใช้ onload มาตรฐาน
-          img.onload = () => checkLoadingProgress()
-        })
+      let hasFailed = false
+      let progressed = false
 
-      decodePromises.push(decodePromise)
+      const handleImageLoad = () => {
+        if (progressed) return
+        progressed = true
+        checkLoadingProgress()
+      }
+
+      const handleImageError = () => {
+        // หากไฟล์แบบย่อ (low-res) โหลดไม่สำเร็จ ให้สลับมาดึงภาพความละเอียดสูง (highPrefix) ทดแทน
+        if (!hasFailed && prefix === lowPrefix) {
+          hasFailed = true
+          console.warn(`[ImageSequence] โหลดภาพแบบย่อไม่สำเร็จเฟรมที่ ${paddedIndex} กำลังดึงไฟล์ภาพความละเอียดสูงทดแทน (Fallback Retry)...`)
+          img.src = `${highPrefix}${paddedIndex}.webp`
+        } else {
+          console.error(`[ImageSequence] โหลดภาพล้มเหลวเฟรมที่ ${paddedIndex} ทุกช่องทาง`)
+          // เรียก Callback เพื่อล้างคิวโหลด ให้บราวเซอร์ยังสามารถทำงานต่อได้ (Loader ไม่ค้าง)
+          if (!progressed) {
+            progressed = true
+            checkLoadingProgress()
+          }
+        }
+      }
+
+      img.onload = handleImageLoad
+      img.onerror = handleImageError
+
+      // เริ่มการโหลด path แรก
+      img.src = `${prefix}${paddedIndex}.webp`
+
+      // [ทีเด็ดลดอาการกระตุก] ใช้ฟังก์ชัน img.decode() ซึ่งจะบอกเบราว์เซอร์ให้ทำการ "ดีโค้ดภาพแปลความหมายเป็นบิตแมป"
+      // บนเทรดข้างหลัง (Background Thread) ล่วงหน้าก่อนที่จะส่งไปวาด
+      if (typeof img.decode === "function") {
+        img.decode()
+          .then(() => {
+            handleImageLoad()
+          })
+          .catch(() => {
+            // จัดการความล้มเหลวด้วยระบบ onload / onerror มาตรฐาน
+          })
+      }
+
       return img
     })
 
     imagesRef.current = preloadedImages
 
     // 4. ติดตั้ง GSAP ScrollTrigger
-    // ผูก ScrollTrigger เข้ากับเข็มหัวเล่นแผ่นเสียง (playheadRef) เมื่อมีแรงเลื่อนเมาส์
+    // ผูก ScrollTrigger เข้ากับเข็มหัวเล่นแผ่นเสียง (playheadRef) เมื่อมีแรงเลื่อนเมาส์ พร้อมปักหมุดหน้าจอ
     scrollTriggerRef.current = ScrollTrigger.create({
       trigger: trigger,
       start: "top top",      // เริ่มขยับเฟรมแรกเมื่อด้านบนสุดของปุ่มเลื่อนมาชนด้านบนสุดของหน้าจอ
-      end: "bottom bottom",  // สิ้นสุดการเล่นเฟรมสุดท้ายเมื่อเลื่อนไปลึกสุดขอบล่างของหน้ากระดาษสกรอลล์
+      end: "+=350%",         // ปักหมุดตรึงไว้เป็นความยาวสกรอลล์ 350% ของ viewport
+      pin: true,             // สั่งปักหมุดตรึงหน้าจอ HeroSection Natively
+      pinSpacing: true,      // ดันเนื้อหาคอนเทนต์ส่วนอื่นลงไปด้านล่างของพื้นที่สกรอลล์จริง
       scrub: 0.15,           // ใส่แรงหน่วงเพื่อให้ภาพเลื่อนสมูท ไหลลื่นดูพรีเมียม (Lag Scrub)
       onUpdate: (self) => {
         if (!isLoadedRef.current) return

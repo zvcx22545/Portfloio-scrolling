@@ -68,7 +68,7 @@ export default function HeroSection() {
         scrollTrigger: {
           trigger: trigger,
           start: "top top",      // จุดเริ่มนับเมาส์เลื่อน
-          end: "top -12%",       // ค่อยๆ หายไปในระยะทางสั้นๆ 12% ของจอแรก
+          end: "+=30%",          // ค่อยๆ หายไปในระยะทางสั้นๆ 30% ของพื้นที่สกรอลล์ตรึงหน้าจอ
           scrub: true,           // ขยับเลือนตามหน้าเมาส์ลากจริง
         },
       })
@@ -83,40 +83,35 @@ export default function HeroSection() {
       <section 
         ref={containerRef} 
         id="hero" 
-        // h-[450vh] กำหนดระยะสกรอลล์ทั้งหมด ยิ่งเยอะ สกรอลล์ยิ่งหน่วง ช้า ดูหรูหราอลังการ (450vh กำลังพอดีมากกับ 102 รูป)
-        className="relative h-[450vh] bg-[#050010] select-none"
+        // กำหนดความสูงให้เป็น h-screen (100% viewport) ตามต้องการ โดย ScrollTrigger จะทำหน้าที่ล็อคปักหมุดตรึงเนื้อหาหน้าจอแบบ Native เอง
+        className="relative h-screen w-full overflow-hidden bg-[#050010] select-none z-10"
       >
-        {/* วางกรอบหน้าจอแบบเหนียวหนึบ (Sticky) จะล็อคจอให้อยู่กับที่ระหว่างผู้ใช้อยู่ในระยะขอบสกรอลล์ */}
-        <div className="sticky top-0 w-full h-screen overflow-hidden z-10">
-          
-          {/* เลือกเรนเดอร์ภาพพื้นหลังตามสเปคความแรงเครื่อง */}
-          {isClient && (
-            useVideoFallback ? (
-              // หากเครื่องช้ามาก โหลด HTML5 Video ที่ดีโค้ดลื่นง่ายผ่านชิปฮาร์ดแวร์มือถือโดยตรง
-              <HeroVideoBackground scrollTriggerRef={containerRef} />
-            ) : (
-              // หากเครื่องสเปคปกติ/แรงปกติ เปิด Canvas Sequence ทรงพลังที่โหลดและสลับรูปบน RAM ลื่นๆ 
-              <ImageSequenceCanvas scrollTriggerRef={containerRef} />
-            )
-          )}
+        {/* เลือกเรนเดอร์ภาพพื้นหลังตามสเปคความแรงเครื่อง */}
+        {isClient && (
+          useVideoFallback ? (
+            // หากเครื่องช้ามาก โหลด HTML5 Video ที่ดีโค้ดลื่นง่ายผ่านชิปฮาร์ดแวร์มือถือโดยตรง
+            <HeroVideoBackground scrollTriggerRef={containerRef} />
+          ) : (
+            // หากเครื่องสเปคปกติ/แรงปกติ เปิด Canvas Sequence ทรงพลังที่โหลดและสลับรูปบน RAM ลื่นๆ 
+            <ImageSequenceCanvas scrollTriggerRef={containerRef} />
+          )
+        )}
 
-          {/* ชั้นแสงนีออนไล่เฉดหรูหราด้านหลัง */}
-          <AnimatedGradient />
+        {/* ชั้นแสงนีออนไล่เฉดหรูหราด้านหลัง */}
+        <AnimatedGradient />
 
-          {/* ชั้นอนุภาคเอฟเฟกต์ละอองเคลื่อนไหว (Particle Layer) */}
-          <ParticleLayer />
+        {/* ชั้นอนุภาคเอฟเฟกต์ละอองเคลื่อนไหว (Particle Layer) */}
+        <ParticleLayer />
 
-          {/* ตัวอักษรและคอนเทนต์จั่วหัวหลักของพอร์ตฟอลิโอ */}
-          <HeroContent />
+        {/* ตัวอักษรและคอนเทนต์จั่วหัวหลักของพอร์ตฟอลิโอ */}
+        <HeroContent />
 
-          {/* ตัวนำทาง Scroll cue ค่อยๆ เด้งลอยลอยเรียกร้องให้เลื่อนหน้าลง */}
-          <div 
-            ref={indicatorRef} 
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
-          >
-            <ScrollIndicator />
-          </div>
-
+        {/* ตัวนำทาง Scroll cue ค่อยๆ เด้งลอยลอยเรียกร้องให้เลื่อนหน้าลง */}
+        <div 
+          ref={indicatorRef} 
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+        >
+          <ScrollIndicator />
         </div>
       </section>
     </ImageSequenceProvider>
