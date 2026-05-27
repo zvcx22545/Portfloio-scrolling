@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#052e2b"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="620" fill="url(#bg)"/>
+  <rect x="116" y="100" width="668" height="420" rx="38" fill="#020617" opacity=".75"/>
+  <rect x="164" y="150" width="220" height="24" rx="12" fill="#34d399"/>
+  <rect x="164" y="208" width="572" height="62" rx="18" fill="#064e3b"/>
+  <rect x="164" y="298" width="260" height="150" rx="24" fill="#022c22"/>
+  <rect x="462" y="298" width="274" height="150" rx="24" fill="#0f172a"/>
+  <path d="M206 382h160M516 352h170M516 394h112" stroke="#a7f3d0" stroke-width="18" stroke-linecap="round" opacity=".68"/>
+  <circle cx="660" cy="158" r="76" fill="#10b981" opacity=".22"/>
+  <text x="190" y="254" font-size="44" font-family="Arial, sans-serif" font-weight="900" fill="#ecfdf5">ORACLE FLOW</text>
+</svg>

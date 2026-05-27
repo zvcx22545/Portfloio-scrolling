@@ -25,16 +25,23 @@ export default function AmbientParticles() {
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const isWeak = reduceMotion || (ram !== undefined && ram <= 8) || cores <= 8
+    const particleCount = isWeak ? 18 : COUNT
+    let lastFrame = 0
 
     const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+      const dpr = isWeak ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
+      canvas.width = Math.floor(window.innerWidth * dpr)
+      canvas.height = Math.floor(window.innerHeight * dpr)
     }
     resize()
     window.addEventListener("resize", resize)
 
     // Init particles
-    particles.current = Array.from({ length: COUNT }, () => ({
+    particles.current = Array.from({ length: particleCount }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       size: Math.random() * 1.8 + 0.3,
@@ -44,7 +51,12 @@ export default function AmbientParticles() {
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     }))
 
-    const draw = () => {
+    const draw = (time: number) => {
+      if (time - lastFrame < (isWeak ? 80 : 40)) {
+        animRef.current = requestAnimationFrame(draw)
+        return
+      }
+      lastFrame = time
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       particles.current.forEach((p) => {
         // Move
@@ -72,7 +84,7 @@ export default function AmbientParticles() {
       })
       animRef.current = requestAnimationFrame(draw)
     }
-    draw()
+    animRef.current = requestAnimationFrame(draw)
 
     return () => {
       cancelAnimationFrame(animRef.current)

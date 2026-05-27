@@ -18,20 +18,26 @@ export function ParticleLayer() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const isWeak = reduceMotion || (ram !== undefined && ram <= 8) || cores <= 8
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     let animationId: number
+    let lastFrame = 0
     const particles: Particle[] = []
-    const particleCount = 40 // Optimized low particle count
+    const particleCount = isWeak ? 14 : 32
     const colors = ["rgba(177, 0, 255, 0.4)", "rgba(0, 208, 255, 0.4)", "rgba(236, 72, 153, 0.3)"]
 
     const resize = () => {
       if (!canvas) return
       const parent = canvas.parentElement
       if (!parent) return
-      canvas.width = parent.clientWidth
-      canvas.height = parent.clientHeight
+      const dpr = isWeak ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
+      canvas.width = Math.floor(parent.clientWidth * dpr)
+      canvas.height = Math.floor(parent.clientHeight * dpr)
     }
 
     const init = () => {
@@ -49,7 +55,12 @@ export function ParticleLayer() {
       }
     }
 
-    const animate = () => {
+    const animate = (time: number) => {
+      if (time - lastFrame < (isWeak ? 66 : 33)) {
+        animationId = requestAnimationFrame(animate)
+        return
+      }
+      lastFrame = time
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       
       particles.forEach((p) => {
@@ -85,7 +96,7 @@ export function ParticleLayer() {
 
     resize()
     init()
-    animate()
+    animationId = requestAnimationFrame(animate)
 
     window.addEventListener("resize", resize)
 

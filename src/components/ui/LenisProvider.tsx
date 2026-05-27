@@ -11,14 +11,21 @@ export default function LenisProvider({ children }: { children: React.ReactNode 
     // Dynamically import Lenis to avoid SSR issues with ESM package
     let lenisInstance: any = null
     let updateLenis: (time: number) => void
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+
+    if (prefersReducedMotion || (ram !== undefined && ram <= 4) || cores <= 4) {
+      return
+    }
 
     import("@studio-freight/lenis").then((mod) => {
       const LenisClass = mod.default ?? (mod as unknown as { Lenis: any }).Lenis
       if (!LenisClass) return
 
       const lenis = new LenisClass({
-        lerp: 0.08,
-        duration: 1.4,
+        lerp: (ram !== undefined && ram <= 8) || cores <= 8 ? 0.16 : 0.1,
+        duration: (ram !== undefined && ram <= 8) || cores <= 8 ? 0.8 : 1.1,
         smoothWheel: true,
         syncTouch: false,
       })
@@ -31,8 +38,7 @@ export default function LenisProvider({ children }: { children: React.ReactNode 
       }
       gsap.ticker.add(updateLenis)
 
-      // Disable lagSmoothing during scrolling to prevent scroll jumping and timeline lags
-      gsap.ticker.lagSmoothing(0)
+      gsap.ticker.lagSmoothing(500, 33)
 
       // Sync scroll position with ScrollTrigger
       lenis.on("scroll", () => {

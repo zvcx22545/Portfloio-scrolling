@@ -1,102 +1,92 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { siteConfig } from "@/config/site"
+import { Database, GraduationCap, Mail, MapPin, Phone } from "lucide-react"
+import { resumeHighlights, resumeProfile, resumeStack } from "@/config/resume"
 import { FadeUp, StaggerReveal } from "@/components/animations/Reveal"
 import { fadeUp } from "@/components/animations/variants"
+import { useLanguage } from "@/contexts/LanguageContext"
+
+const stackGroups = [
+  { label: "Frontend", items: resumeStack.frontend },
+  { label: "Backend", items: resumeStack.backend },
+  { label: "Database", items: resumeStack.database },
+  { label: "Tools", items: resumeStack.tools },
+]
 
 export default function AboutSection() {
+  const { t } = useLanguage()
+
   return (
-    <section id="about" className="relative py-32 px-6 md:px-20 overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/2 -right-40 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
-        style={{ background: "radial-gradient(circle, #b100ff, transparent)" }} />
+    <section id="about" className="relative overflow-hidden px-6 py-28 md:px-20">
+      <div className="absolute right-0 top-16 h-[420px] w-[420px] rounded-full bg-cyan-500/10 blur-3xl" />
 
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          {/* Left: Portrait + floating cards */}
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
           <FadeUp>
-            <div className="relative flex justify-center">
-              {/* Glowing ring */}
-              <div className="absolute inset-0 rounded-full blur-2xl opacity-30"
-                style={{ background: "radial-gradient(circle, #8b5cf6, transparent 70%)" }} />
-
-              {/* Portrait card */}
-              <div className="relative w-72 h-80 rounded-2xl overflow-hidden border border-white/10"
-                style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(177,0,255,0.1))", backdropFilter: "blur(20px)" }}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-8xl mb-4">🐱‍💻</div>
-                    <div className="text-white font-bold text-xl">Kurorin</div>
-                    <div className="text-purple-400 text-sm mt-1">Design Engineer</div>
-                  </div>
+            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
+              <div className="mb-8 flex items-start justify-between gap-6">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">Resume Signal</p>
+                  <h2 className="mt-3 text-3xl font-black text-white">{resumeProfile.name}</h2>
+                  <p className="mt-2 text-sm font-medium text-violet-200">{resumeProfile.role}</p>
                 </div>
-                {/* Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <Database className="text-cyan-200" size={28} />
+                </div>
               </div>
 
-              {/* Floating stat cards */}
-              {siteConfig.stats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }}
-                  className="absolute glass-card px-4 py-3 rounded-xl border border-white/10 text-center shadow-lg"
-                  style={{
-                    backdropFilter: "blur(16px)",
-                    background: "rgba(255,255,255,0.05)",
-                    top: i === 0 ? "10%" : i === 1 ? "50%" : "75%",
-                    left: i === 0 ? "-10%" : "auto",
-                    right: i === 1 ? "-12%" : i === 2 ? "-8%" : "auto",
-                  }}
-                >
-                  <div className="text-2xl font-black bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-                    {stat.value}
+              <div className="space-y-3 text-sm text-slate-300">
+                <p className="flex items-center gap-3"><Mail size={16} className="text-cyan-300" /> {resumeProfile.email}</p>
+                <p className="flex items-center gap-3"><Phone size={16} className="text-cyan-300" /> {resumeProfile.phone}</p>
+                <p className="flex items-center gap-3"><MapPin size={16} className="text-cyan-300" /> {resumeProfile.location}</p>
+                <p className="flex items-start gap-3">
+                  <GraduationCap size={16} className="mt-0.5 text-cyan-300" />
+                  <span>{resumeProfile.education.degree}<br />{resumeProfile.education.school}</span>
+                </p>
+              </div>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {stackGroups.map((group) => (
+                  <div key={group.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map((item) => (
+                        <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-slate-300">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-gray-400 text-xs mt-0.5">{stat.label}</div>
-                </motion.div>
-              ))}
+                ))}
+              </div>
             </div>
           </FadeUp>
 
-          {/* Right: Text + skills */}
           <StaggerReveal className="space-y-6">
-            <motion.p variants={fadeUp} className="text-purple-400 text-sm font-semibold tracking-[0.3em] uppercase">
-              01 — About Me ✦
+            <motion.p variants={fadeUp} className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">
+              {t.about.eyebrow}
             </motion.p>
-            <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black text-white leading-tight">
-              A Passionate{" "}
-              <span className="bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent">
-                UI/UX Designer
+            <motion.h2 variants={fadeUp} className="text-4xl font-black leading-tight text-white md:text-5xl">
+              {t.about.titleA}{" "}
+              <span className="bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
+                {t.about.titleB}
               </span>{" "}
-              & Frontend Developer
+              {t.about.titleC}
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-gray-400 text-lg leading-relaxed">
-              {siteConfig.description}
+            <motion.p variants={fadeUp} className="text-lg leading-relaxed text-slate-400">
+              {resumeProfile.summary}
             </motion.p>
 
-            {/* Info grid */}
-            <motion.div variants={fadeUp} className="grid grid-cols-2 gap-4 text-sm">
-              {[
-                { label: "Email", value: siteConfig.email },
-                { label: "Location", value: siteConfig.location },
-                { label: "Available", value: siteConfig.availability },
-                { label: "Role", value: siteConfig.role },
-              ].map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <span className="text-purple-400 font-semibold">{item.label}</span>
-                  <p className="text-gray-300">{item.value}</p>
+            <motion.div variants={fadeUp} className="grid gap-4 md:grid-cols-3">
+              {resumeHighlights.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 backdrop-blur-md">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">{item.eyebrow}</p>
+                  <h3 className="mt-3 text-base font-bold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
                 </div>
               ))}
-            </motion.div>
-
-            <motion.div variants={fadeUp}>
-              <a
-                href="#"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-purple-500/50 text-purple-300 hover:bg-purple-500/10 transition-all duration-300 text-sm font-semibold"
-              >
-                Download CV ↓
-              </a>
             </motion.div>
           </StaggerReveal>
         </div>

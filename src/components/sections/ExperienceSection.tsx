@@ -28,7 +28,7 @@ export default function ExperienceSection() {
 
           <div className="space-y-12">
             {experiences.map((exp, i) => (
-              <FadeUp key={exp.year} delay={i * 0.1}>
+              <FadeUp key={`${exp.year}-${exp.title}`} delay={i * 0.1}>
                 <div className={`relative flex items-start gap-8 md:gap-0 ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"}`}>
                   {/* Content */}
                   <div className={`flex-1 pl-16 md:pl-0 ${i % 2 === 0 ? "md:pr-16 md:text-right" : "md:pl-16"}`}>

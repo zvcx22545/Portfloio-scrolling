@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { motion, useMotionValue, useSpring } from "framer-motion"
+import { Database, GitBranch, Layers3, Terminal } from "lucide-react"
 import { heroConfig } from "@/configs/hero/heroConfig"
 
 interface CardProps {
@@ -9,24 +10,32 @@ interface CardProps {
   className?: string
 }
 
-export function HoverTiltCard({ children, className = "" }: CardProps) {
+function HoverTiltCard({ children, className = "" }: CardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
-  
+  const [enabled, setEnabled] = useState(false)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
+  const rotateX = useSpring(y, { stiffness: 130, damping: 18 })
+  const rotateY = useSpring(x, { stiffness: 130, damping: 18 })
 
-  const springConfig = { stiffness: 150, damping: 15 }
-  const rotateX = useSpring(y, springConfig)
-  const rotateY = useSpring(x, springConfig)
+  useEffect(() => {
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    setEnabled(
+      window.matchMedia("(pointer: fine)").matches &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        (ram === undefined || ram > 8) &&
+        cores > 8
+    )
+  }, [])
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!enabled || !cardRef.current) return
     const rect = cardRef.current.getBoundingClientRect()
-    const mouseX = (e.clientX - rect.left) / rect.width - 0.5
-    const mouseY = (e.clientY - rect.top) / rect.height - 0.5
-
-    x.set(mouseX * 16)
-    y.set(-mouseY * 16)
+    const mouseX = (event.clientX - rect.left) / rect.width - 0.5
+    const mouseY = (event.clientY - rect.top) / rect.height - 0.5
+    x.set(mouseX * 10)
+    y.set(-mouseY * 10)
   }
 
   const handleMouseLeave = () => {
@@ -37,81 +46,75 @@ export function HoverTiltCard({ children, className = "" }: CardProps) {
   return (
     <motion.div
       ref={cardRef}
-      className={`relative rounded-2xl border border-white/10 p-5 bg-[#0a0515]/90 shadow-[0_20px_50px_rgba(0,0,0,0.4)] overflow-hidden transition-[border-color,background-color] duration-300 hover:border-purple-500/40 hover:bg-[#0f0720]/95 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl ${className}`}
       style={{
-        background: "linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)",
         transformStyle: "preserve-3d",
         perspective: 1000,
-        rotateX: rotateX,
-        rotateY: rotateY,
+        ...(enabled ? { rotateX, rotateY } : {}),
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={enabled ? handleMouseMove : undefined}
+      onMouseLeave={enabled ? handleMouseLeave : undefined}
     >
-      {/* Glowing reflection flare */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none" />
-      
-      {/* Content wrapper with Z depth */}
-      <div style={{ transform: "translateZ(30px)" }} className="relative z-10">
-        {children}
-      </div>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
+      <div className="relative z-10">{children}</div>
     </motion.div>
   )
 }
 
 export function FloatingGlassCards() {
   return (
-    <div className="relative w-full h-full min-h-[400px] flex flex-col justify-center items-end gap-6 pr-4 lg:pr-12 pointer-events-auto">
-      {/* Card 1: Available for Work Status */}
-      <HoverTiltCard className="w-[240px] md:w-[260px] select-none border border-emerald-500/20 shadow-[0_8px_32px_rgba(16,185,129,0.05)]">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-emerald-400 font-sans">
-            Status: Available
-          </span>
-        </div>
-        <h4 className="text-white text-sm font-semibold mb-1">Open for Contracts</h4>
-        <p className="text-gray-400 text-xs font-medium">Mon – Fri | 10AM – 6PM</p>
-      </HoverTiltCard>
-
-      {/* Card 2: Code telemetry snippet */}
-      <HoverTiltCard className="w-[280px] md:w-[320px] font-mono text-xs border border-purple-500/20 shadow-[0_8px_32px_rgba(139,92,246,0.05)]">
-        <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-          <div className="flex gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+    <div className="relative flex min-h-[440px] w-full flex-col justify-center gap-5 pr-4 lg:pr-8">
+      <HoverTiltCard className="ml-auto w-[320px] border-cyan-300/20">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-cyan-200">
+            <Layers3 size={18} />
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">System Layer</span>
           </div>
-          <span className="text-[9px] text-gray-500 tracking-wider">CREATIVITY.TS</span>
+          <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-300">
+            READY
+          </span>
         </div>
-        <p className="leading-relaxed">
-          <span className="text-pink-400">const</span> <span className="text-blue-400">creativity</span> = <span className="text-green-300">&quot;limitless&quot;</span>;
-        </p>
-        <p className="leading-relaxed mt-1">
-          <span className="text-pink-400">const</span> <span className="text-blue-400">stack</span> = [<span className="text-green-300">&quot;Next.js&quot;</span>, <span className="text-green-300">&quot;GSAP&quot;</span>];
+        <h3 className="mb-2 text-lg font-bold text-white">Mybeer Reward Exchange</h3>
+        <p className="text-sm leading-relaxed text-slate-400">
+          Customer points, redeemable products, and requirement-focused business flow.
         </p>
       </HoverTiltCard>
 
-      {/* Card 3: Dynamic telemetry stats */}
-      <HoverTiltCard className="w-[250px] md:w-[280px] border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.05)]">
-        <h4 className="text-white/40 text-[10px] tracking-[0.2em] uppercase font-semibold mb-3 font-sans">
-          Core Engine Info
-        </h4>
-        <div className="flex flex-col gap-2.5">
-          {heroConfig.floatingStats.map((stat, i) => (
-            <div key={i} className="flex justify-between items-center text-[11px] border-b border-white/5 pb-1.5 last:border-0 last:pb-0">
-              <span className="text-gray-400 font-medium">{stat.label}</span>
-              <span className={`font-mono font-bold tracking-wider ${stat.color}`}>
-                {stat.value}
-              </span>
+      <HoverTiltCard className="w-[360px] border-violet-300/20">
+        <div className="mb-4 flex items-center gap-2 text-violet-200">
+          <Terminal size={18} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Runtime Profile</span>
+        </div>
+        <div className="space-y-2 font-mono text-xs">
+          {heroConfig.terminalLogs.slice(1).map((log) => (
+            <p key={log} className="text-slate-300">
+              <span className="text-cyan-300">&gt;</span> {log}
+            </p>
+          ))}
+        </div>
+      </HoverTiltCard>
+
+      <HoverTiltCard className="ml-auto w-[300px] border-emerald-300/20">
+        <div className="mb-4 flex items-center gap-2 text-emerald-200">
+          <Database size={18} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Capability Matrix</span>
+        </div>
+        <div className="space-y-3">
+          {heroConfig.floatingStats.map((stat) => (
+            <div key={stat.label} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-0">
+              <span className="text-xs text-slate-400">{stat.label}</span>
+              <span className={`font-mono text-xs font-bold ${stat.color}`}>{stat.value}</span>
             </div>
           ))}
         </div>
       </HoverTiltCard>
+
+      <div className="absolute -right-2 bottom-8 flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-xs text-slate-400 backdrop-blur-md">
+        <GitBranch size={14} />
+        Agile / Git / Postman
+      </div>
     </div>
   )
 }
+
 export default FloatingGlassCards

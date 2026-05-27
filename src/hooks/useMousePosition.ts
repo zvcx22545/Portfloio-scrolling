@@ -15,6 +15,15 @@ export function useMousePosition() {
 
   useEffect(() => {
     let animationFrameId: number
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    const shouldTrack =
+      window.matchMedia("(pointer: fine)").matches &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+      (ram === undefined || ram > 8) &&
+      cores > 8
+
+    if (!shouldTrack) return
 
     const handler = (e: MouseEvent) => {
       // Throttle via requestAnimationFrame to avoid firing multiple times per frame

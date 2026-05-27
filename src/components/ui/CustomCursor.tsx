@@ -3,73 +3,86 @@
 import { useEffect, useState } from "react"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 
+function shouldUseCustomCursor() {
+  const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+  const cores = navigator.hardwareConcurrency || 4
+
+  return (
+    window.matchMedia("(pointer: fine)").matches &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+    (ram === undefined || ram > 8) &&
+    cores > 8
+  )
+}
+
 export default function CustomCursor() {
-  const [isTouch, setIsTouch] = useState(false)
+  const [enabled, setEnabled] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
 
   const mx = useMotionValue(-100)
   const my = useMotionValue(-100)
-  const springX = useSpring(mx, { damping: 22, stiffness: 280, mass: 0.5 })
-  const springY = useSpring(my, { damping: 22, stiffness: 280, mass: 0.5 })
+  const springX = useSpring(mx, { damping: 26, stiffness: 220, mass: 0.4 })
+  const springY = useSpring(my, { damping: 26, stiffness: 220, mass: 0.4 })
 
   useEffect(() => {
-    // Detect touch device — hide cursor on mobile/tablet
-    if (window.matchMedia("(pointer: coarse)").matches) {
-      setIsTouch(true)
-      return
+    const useCustomCursor = shouldUseCustomCursor()
+    setEnabled(useCustomCursor)
+    document.body.classList.toggle("custom-cursor-enabled", useCustomCursor)
+
+    if (!useCustomCursor) {
+      document.body.style.cursor = "auto"
+      return () => {
+        document.body.classList.remove("custom-cursor-enabled")
+        document.body.style.cursor = ""
+      }
     }
 
-    const move = (e: MouseEvent) => {
-      mx.set(e.clientX)
-      my.set(e.clientY)
+    let rafId = 0
+    const move = (event: MouseEvent) => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        mx.set(event.clientX)
+        my.set(event.clientY)
+      })
     }
 
-    const onEnter = (e: MouseEvent) => {
-      const el = e.target as HTMLElement
-      if (el.closest("a, button, [role='button'], input, textarea")) {
+    const hoverQuery = "a, button, [role='button'], input, textarea"
+    const onPointerOver = (event: PointerEvent) => {
+      if ((event.target as HTMLElement).closest(hoverQuery)) {
         setIsHovering(true)
       }
     }
-    const onLeave = () => setIsHovering(false)
+    const onPointerOut = (event: PointerEvent) => {
+      if ((event.target as HTMLElement).closest(hoverQuery)) {
+        setIsHovering(false)
+      }
+    }
 
-    window.addEventListener("mousemove", move)
-    document.addEventListener("mouseover", onEnter)
-    document.addEventListener("mouseout", onLeave)
+    window.addEventListener("pointermove", move, { passive: true })
+    document.addEventListener("pointerover", onPointerOver)
+    document.addEventListener("pointerout", onPointerOut)
+
     return () => {
-      window.removeEventListener("mousemove", move)
-      document.removeEventListener("mouseover", onEnter)
-      document.removeEventListener("mouseout", onLeave)
+      cancelAnimationFrame(rafId)
+      document.body.classList.remove("custom-cursor-enabled")
+      window.removeEventListener("pointermove", move)
+      document.removeEventListener("pointerover", onPointerOver)
+      document.removeEventListener("pointerout", onPointerOut)
     }
   }, [mx, my])
 
-  if (isTouch) return null
+  if (!enabled) return null
 
   return (
-    <>
-      {/* Outer ring — follows with spring lag */}
+    <motion.div
+      className="fixed left-0 top-0 z-[9999] pointer-events-none mix-blend-difference"
+      style={{ x: springX, y: springY, translateX: "-50%", translateY: "-50%" }}
+    >
       <motion.div
-        className="fixed top-0 left-0 z-[9999] pointer-events-none mix-blend-difference"
-        style={{ x: springX, y: springY, translateX: "-50%", translateY: "-50%" }}
-      >
-        <motion.div
-          animate={{ scale: isHovering ? 1.8 : 1, opacity: isHovering ? 0.6 : 0.5 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-full border border-white"
-          style={{ width: "32px", height: "32px" }}
-        />
-      </motion.div>
-
-      {/* Inner dot — follows exactly */}
-      <motion.div
-        className="fixed top-0 left-0 z-[9999] pointer-events-none"
-        style={{ x: mx, y: my, translateX: "-50%", translateY: "-50%" }}
-      >
-        <motion.div
-          animate={{ scale: isHovering ? 0 : 1 }}
-          transition={{ duration: 0.15 }}
-          className="w-1.5 h-1.5 rounded-full bg-purple-400"
-        />
-      </motion.div>
-    </>
+        animate={{ scale: isHovering ? 1.55 : 1, opacity: isHovering ? 0.7 : 0.45 }}
+        transition={{ duration: 0.18 }}
+        className="h-7 w-7 rounded-full border border-white"
+      />
+    </motion.div>
   )
 }

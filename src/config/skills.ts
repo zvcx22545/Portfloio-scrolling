@@ -1,19 +1,19 @@
 export const skills = [
-  { name: "UI/UX Design", level: 96, icon: "✦", color: "#b100ff" },
-  { name: "Figma", level: 92, icon: "⬡", color: "#00d0ff" },
-  { name: "Frontend Dev", level: 90, icon: "◈", color: "#8b5cf6" },
-  { name: "JavaScript / TypeScript", level: 88, icon: "◉", color: "#ff0080" },
-  { name: "GSAP Animation", level: 85, icon: "◎", color: "#b100ff" },
-  { name: "Tailwind CSS", level: 90, icon: "◆", color: "#00d0ff" },
-  { name: "React / Next.js", level: 88, icon: "⬢", color: "#8b5cf6" },
-  { name: "Three.js / R3F", level: 75, icon: "◈", color: "#ff0080" },
+  { name: "Vue.js", level: 86, icon: "V", color: "#42b883" },
+  { name: "React.js / Next.js", level: 84, icon: "R", color: "#38bdf8" },
+  { name: "Tailwind CSS", level: 88, icon: "T", color: "#00d0ff" },
+  { name: "JavaScript", level: 86, icon: "JS", color: "#facc15" },
+  { name: "Oracle / MySQL", level: 78, icon: "DB", color: "#f97316" },
+  { name: "PHP Basic", level: 68, icon: "PHP", color: "#8b5cf6" },
+  { name: "Git / Postman", level: 82, icon: "API", color: "#10b981" },
+  { name: "Agile Collaboration", level: 84, icon: "AG", color: "#ec4899" },
 ]
 
 export const techStack = [
+  { name: "Vue.js", icon: "/icons/vue.svg", color: "#42b883" },
   { name: "React", icon: "/icons/react.svg", color: "#61dafb" },
   { name: "Next.js", icon: "/icons/nextjs.svg", color: "#ffffff" },
-  { name: "TypeScript", icon: "/icons/typescript.svg", color: "#3178c6" },
-  { name: "Figma", icon: "/icons/figma.svg", color: "#f24e1e" },
-  { name: "GSAP", icon: "/icons/gsap.svg", color: "#88ce02" },
   { name: "Tailwind", icon: "/icons/tailwind.svg", color: "#38bdf8" },
+  { name: "Oracle", icon: "/icons/oracle.svg", color: "#f80000" },
+  { name: "Git", icon: "/icons/git.svg", color: "#f97316" },
 ]

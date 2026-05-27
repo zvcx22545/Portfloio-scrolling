@@ -1,16 +1,16 @@
 export const siteConfig = {
-  name: "Kurorin",
-  role: "Creative Frontend Engineer",
-  tagline: "I Build Digital Experiences That Feel Alive",
+  name: "Chisanupong",
+  role: "Programmer / Full Stack Developer",
+  tagline: "I Build Practical Web Systems With Cinematic Interfaces",
   description:
-    "I'm a passionate UI/UX Designer and Frontend Developer who loves turning ideas into intuitive, beautiful, and impactful digital experiences.",
-  email: "hello@kurorin.dev",
+    "Full Stack Developer with 1 year of experience building web applications, maintaining requirement-driven systems, and collaborating with Agile teams across frontend, backend, and database workflows.",
+  email: "chisanupong.limsakul@gmail.com",
   location: "Bangkok, Thailand",
-  availability: "Mon – Fri | 10AM – 6PM",
+  availability: "Available for web development roles",
   stats: [
-    { label: "Years Experience", value: "4+" },
-    { label: "Projects Done", value: "50+" },
-    { label: "Happy Clients", value: "20+" },
+    { label: "Experience", value: "1+ Year" },
+    { label: "Production Work", value: "Mybeer" },
+    { label: "Core Stack", value: "Full Stack" },
   ],
 }
 
@@ -25,8 +25,6 @@ export const navLinks = [
 ]
 
 export const socialLinks = [
-  { label: "GitHub", href: "https://github.com", icon: "github" },
-  { label: "LinkedIn", href: "https://linkedin.com", icon: "linkedin" },
-  { label: "Behance", href: "https://behance.net", icon: "behance" },
-  { label: "Dribbble", href: "https://dribbble.com", icon: "dribbble" },
+  { label: "GitHub", href: "https://github.com/zvcx22545", icon: "github" },
+  { label: "Email", href: "mailto:chisanupong.limsakul@gmail.com", icon: "mail" },
 ]

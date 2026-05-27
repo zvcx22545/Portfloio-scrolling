@@ -18,26 +18,27 @@ export interface HeroConfig {
 }
 
 export const heroConfig: HeroConfig = {
-  tagline: "I Build Digital Experiences That Feel Alive",
-  subheading: "Crafting immersive digital products through code, motion, and cinematic storytelling.",
+  tagline: "Full Stack Developer for business-ready web systems",
+  subheading:
+    "I turn requirements into reliable web applications, campaign landing pages, and database-connected workflows with a clean, cinematic interface layer.",
   ctaPrimary: {
-    label: "Explore My Work",
+    label: "View My Work",
     href: "#projects",
   },
   ctaSecondary: {
-    label: "View Case Studies",
+    label: "Read Resume Story",
     href: "#about",
   },
   terminalLogs: [
-    "Initializing Core.Engine v4.2.1...",
-    "Connecting to neural digital web interface...",
-    "Compiling shaders & dynamic motion vectors...",
-    "Status: STABLE // FPS: 120 // GPU: ACCELERATED",
-    "Loaded digital universe grid matrix successfully.",
+    "Profile: Chisanupong Limsakul",
+    "Role: Programmer / Full Stack Developer",
+    "Frontend: Vue.js / React.js / Next.js / Tailwind CSS",
+    "Database: Oracle / MySQL",
+    "Workflow: Agile, Git, Postman, requirement-based fixes",
   ],
   floatingStats: [
-    { label: "Design System Status", value: "ONLINE", color: "text-green-400" },
-    { label: "GPU Acceleration", value: "ENABLED", color: "text-purple-400" },
-    { label: "Rendering Core", value: "CINEMATIC LERP", color: "text-blue-400" },
+    { label: "Production Focus", value: "Mybeer", color: "text-emerald-300" },
+    { label: "Frontend Stack", value: "Vue / React", color: "text-cyan-300" },
+    { label: "Database Layer", value: "Oracle", color: "text-violet-300" },
   ],
 }

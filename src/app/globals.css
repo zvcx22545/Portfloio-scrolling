@@ -179,7 +179,10 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Ensure the cursor: none applies everywhere for our custom cursor */
-a, button, [role="button"] {
+/* Hide the native cursor only on devices that can afford the custom cursor. */
+body.custom-cursor-enabled,
+body.custom-cursor-enabled a,
+body.custom-cursor-enabled button,
+body.custom-cursor-enabled [role="button"] {
   cursor: none;
 }

@@ -6,7 +6,8 @@
     "dev": "next dev -p 8000",
     "build": "next build",
     "start": "next start -p 8000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "video:hero": "node scripts/encode-hero-video.js"
   },
   "dependencies": {
     "@react-three/drei": "^9.115.0",

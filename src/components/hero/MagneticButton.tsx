@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { motion, useMotionValue, useSpring } from "framer-motion"
 
 interface MagneticButtonProps {
@@ -15,6 +15,7 @@ export function MagneticButton({
   strength = 0.35,
 }: MagneticButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [enabled, setEnabled] = useState(false)
   
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -23,8 +24,19 @@ export function MagneticButton({
   const translateX = useSpring(x, springConfig)
   const translateY = useSpring(y, springConfig)
 
+  useEffect(() => {
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    setEnabled(
+      window.matchMedia("(pointer: fine)").matches &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        (ram === undefined || ram > 8) &&
+        cores > 8
+    )
+  }, [])
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return
+    if (!enabled || !containerRef.current) return
     const { clientX, clientY } = e
     const { left, top, width, height } = containerRef.current.getBoundingClientRect()
     
@@ -46,9 +58,9 @@ export function MagneticButton({
     <motion.div
       ref={containerRef}
       className={`inline-block ${className}`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ x: translateX, y: translateY }}
+      onMouseMove={enabled ? handleMouseMove : undefined}
+      onMouseLeave={enabled ? handleMouseLeave : undefined}
+      style={enabled ? { x: translateX, y: translateY } : undefined}
     >
       {children}
     </motion.div>

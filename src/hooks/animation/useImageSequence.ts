@@ -4,21 +4,29 @@ import { useEffect, useRef } from "react"
 import { gsap } from "@/lib/gsap/gsapSetup"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 
-// ลงทะเบียน ScrollTrigger กับ GSAP เพื่อให้ใช้งานฟังก์ชันตรวจจับการสกรอลล์ได้
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger)
 }
 
-// กำหนดประเภทของ Properties (Props) ที่ Hook ตัวนี้รองรับ
 interface UseImageSequenceProps {
-  canvasRef: React.RefObject<HTMLCanvasElement>     // อ้างอิงตัว Canvas Element ที่จะใช้วาดภาพ
-  containerRef: React.RefObject<HTMLElement>       // อ้างอิงตัว Section Container ที่ใช้สกรอลล์
-  totalFrames?: number                            // จำนวนเฟรมภาพทั้งหมด (ดีฟอลต์เป็น 102)
-  highPrefix?: string                             // โฟลเดอร์เก็บภาพคุณภาพสูง (สำหรับคอมแรง)
-  lowPrefix?: string                              // โฟลเดอร์เก็บภาพขนาดเล็ก (สำหรับมือถือ/คอมช้า)
-  padLength?: number                              // ความยาวของตัวเลขชื่อไฟล์ เช่น 000, 001 มีค่าเป็น 3 หลัก
-  onProgress?: (progress: number) => void         // ฟังก์ชัน Callback ส่งตัวเลขเปอร์เซ็นต์การโหลด (0-100) ไปแสดงบน UI Loader
-  onReady?: () => void                            // ฟังก์ชัน Callback ที่จะทำงานเมื่อโหลดรูปและเตรียมโครงสร้างเสร็จแล้ว
+  canvasRef: React.RefObject<HTMLCanvasElement>
+  containerRef: React.RefObject<HTMLElement>
+  totalFrames?: number
+  highPrefix?: string
+  lowPrefix?: string
+  padLength?: number
+  onProgress?: (progress: number) => void
+  onReady?: () => void
+}
+
+interface DeviceProfile {
+  isWeak: boolean
+  frameStep: number
+  prefix: string
+  dpr: number
+  quality: ImageSmoothingQuality
+  concurrency: number
+  scrollLength: string
 }
 
 export function useImageSequence({
@@ -31,110 +39,109 @@ export function useImageSequence({
   onProgress,
   onReady,
 }: UseImageSequenceProps) {
-  
-  // playheadRef เป็นเสมือนเข็มหัวเล่นแผ่นเสียงที่คอยเก็บบันทึกว่า "ตอนนี้กำลังแสดงเฟรมที่เท่าไหร่"
-  // ใช้ useRef แทน useState เพื่อ "ป้องกันการสั่ง Rerender ตัว Component" ซึ่งจะทำให้ประสิทธิภาพตกลงอย่างมาก (60fps จะกระตุก)
   const playheadRef = useRef({ frame: 0 })
-  
-  // imagesRef ใช้สำหรับเก็บกักเก็บ Array ของรูปภาพ (HTMLImageElement) ทั้งหมดที่โหลดมาเก็บไว้ในหน่วยความจำ RAM/GPU
   const imagesRef = useRef<HTMLImageElement[]>([])
-  
-  // ตัวแปรเช็คว่า ทุกเฟรมภาพโหลดพร้อมสำหรับการอนิเมทหรือยัง
   const isLoadedRef = useRef(false)
-  
-  // ตัวแปรล็อคสถานะการวาดภาพ เพื่อไม่ให้สั่งวาดซ้ำหลายครั้งเกินไปใน 1 เฟรม (Throttle ด้วย requestAnimationFrame)
   const renderRequestedRef = useRef(false)
-  
-  // เก็บ Instance ของ GSAP ScrollTrigger เพื่อให้สามารถปิดตัวแปรและลบออกได้ยาม Unmount (ป้องกัน Memory Leak)
   const scrollTriggerRef = useRef<ScrollTrigger | null>(null)
-  
-  // เก็บสัดส่วนขนาดภาพจริงล่าสุด เพื่อคำนวณการยืดหด (Responsive Scale)
-  const imgDimensionsRef = useRef({ width: 1920, height: 1080 })
+  const lastDrawnFrameRef = useRef(-1)
+  const onProgressRef = useRef(onProgress)
+  const onReadyRef = useRef(onReady)
 
-  /**
-   * ฟังก์ชัน detectDeviceProfile
-   * ทำหน้าที่ตรวจสอบระดับความแรงของเครื่องคอมพิวเตอร์ หรือ มือถือของผู้ใช้งานแบบ Realtime
-   * เพื่อส่งข้อมูลนำไปตัดเกรดปรับระดับคุณภาพภาพ (Adaptive Quality)
-   */
-  const detectDeviceProfile = () => {
-    if (typeof window === "undefined") return { isWeak: false, frameStep: 1, prefix: highPrefix }
+  useEffect(() => {
+    onProgressRef.current = onProgress
+    onReadyRef.current = onReady
+  }, [onProgress, onReady])
 
-    const ram = (navigator as any).deviceMemory                // เช็คขนาด RAM (หน่วยเป็น GB)
-    const cores = navigator.hardwareConcurrency                // เช็คจำนวน Core ของ CPU
-    const connection = (navigator as any).connection           // เช็คความเร็วอินเทอร์เน็ต
-    const ua = navigator.userAgent.toLowerCase()
-    
-    // ตรวจจับว่าเป็นอุปกรณ์มือถือหรือแท็บเล็ตหรือไม่
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
-    
-    // เงื่อนไขในการจัดกลุ่มเป็น "อุปกรณ์สเปคต่ำ/ปานกลาง" (แรม <= 4GB หรือ คอร์ CPU <= 4 หรือต่อเน็ต 3G ช้า หรือเปิดโหมดประหยัดเน็ต)
-    const isSlowNetwork = connection && (connection.saveData || ["2g", "3g"].includes(connection.effectiveType))
-    const isLowSpecs = (ram && ram <= 4) || (cores && cores <= 4)
+  const detectDeviceProfile = (): DeviceProfile => {
+    if (typeof window === "undefined") {
+      return {
+        isWeak: false,
+        frameStep: 1,
+        prefix: highPrefix,
+        dpr: 1,
+        quality: "high",
+        concurrency: 6,
+        scrollLength: "+=350%",
+      }
+    }
 
-    // เงื่อนไขในการจัดกลุ่มเป็น "อุปกรณ์รุ่นเก่ามาก/สเปคต่ำสุดๆ" (แรม <= 2GB หรือ ซีพียูมีแค่ 2 คอร์) เพื่อเปิดโหมดประหยัดสุดขีด
-    const isFallbackDevice = (ram && ram <= 2) || (cores && cores <= 2)
+    const ram = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    const cores = navigator.hardwareConcurrency || 4
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }).connection
+    const isMobile = window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const saveData = Boolean(connection?.saveData)
+    const slowNetwork = ["2g", "3g"].includes(connection?.effectiveType || "")
+    const isWeak = isMobile || prefersReducedMotion || saveData || slowNetwork || (ram !== undefined && ram <= 8) || cores <= 8
 
-    // การทำ Downsampling:
-    // คอมแรงโหลดครบทุกรูป (frameStep = 1) -> โหลดครบ 102 รูป
-    // มือถือ/คอมสเปคต่ำจะโหลดแค่รูปเว้นรูป (frameStep = 2) -> โหลดแค่ 51 รูป ช่วยประหยัด RAM/เน็ต ไปครึ่งนึง และโหลดภาพสเปคต่ำ (lowPrefix)
-    const frameStep = (isMobile || isLowSpecs) ? 2 : 1
-    const prefix = (isMobile || isLowSpecs) ? lowPrefix : highPrefix
+    if (prefersReducedMotion || saveData || slowNetwork || (ram !== undefined && ram <= 4) || cores <= 4) {
+      return {
+        isWeak: true,
+        frameStep: 5,
+        prefix: lowPrefix,
+        dpr: 1,
+        quality: "low",
+        concurrency: 2,
+        scrollLength: "+=220%",
+      }
+    }
+
+    if (isWeak) {
+      return {
+        isWeak: true,
+        frameStep: 3,
+        prefix: lowPrefix,
+        dpr: Math.min(window.devicePixelRatio || 1, 1.25),
+        quality: "medium",
+        concurrency: 3,
+        scrollLength: "+=280%",
+      }
+    }
 
     return {
-      isWeak: isMobile || isLowSpecs,
-      isFallback: isFallbackDevice || isSlowNetwork,
-      frameStep,
-      prefix,
+      isWeak: false,
+      frameStep: 1,
+      prefix: highPrefix,
+      dpr: Math.min(window.devicePixelRatio || 1, 1.5),
+      quality: "high",
+      concurrency: 5,
+      scrollLength: "+=350%",
     }
   }
 
-  /**
-   * ฟังก์ชัน drawFrame
-   * ทำหน้าที่ดึงรูปภาพจาก Array ออกมาวาดลงไปในแท็ก <canvas>
-   * โดยจะคำนวณอัตราส่วนภาพแบบ "cover" (คล้าย CSS object-fit: cover) เสมอ เพื่อให้ภาพฟิตพอดีจอ ไม่ยืดไม่เบี้ยว
-   */
   const drawFrame = (frameIndex: number) => {
     const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
     const imageList = imagesRef.current
-    if (imageList.length === 0) return
+    if (!canvas || imageList.length === 0) return
 
-    // ป้องกันกรณี index เกินขอบเขตของ Array โดยดักให้อยู่ระหว่างเฟรมแรกและเฟรมสุดท้าย
     const clampedIndex = Math.min(Math.max(frameIndex, 0), imageList.length - 1)
-    const img = imageList[clampedIndex]
+    if (lastDrawnFrameRef.current === clampedIndex) return
 
-    // ตรวจเช็คว่ารูปโหลดเสร็จจริงและมีความกว้างเหมาะสม จึงจะสั่งวาดลงไป
+    const img = imageList[clampedIndex]
     if (!img || !img.complete || img.naturalWidth === 0) return
 
-    imgDimensionsRef.current.width = img.naturalWidth
-    imgDimensionsRef.current.height = img.naturalHeight
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
     const { width: cw, height: ch } = canvas
     const iw = img.naturalWidth
     const ih = img.naturalHeight
-
-    // อัลกอริทึมคำนวณการฟิตภาพแบบ Cover (ขยายภาพให้ครอบคลุมขอบ Canvas ทั้งหมดโดยรักษาสัดส่วนภาพเดิม)
     const scale = Math.max(cw / iw, ch / ih)
     const x = (cw - iw * scale) / 2
     const y = (ch - ih * scale) / 2
 
-    ctx.clearRect(0, 0, cw, ch) // ล้างเฟรมเก่าทิ้ง ป้องกันเฟรมทับซ้อนซึมทะลุ
-    ctx.drawImage(img, x, y, iw * scale, ih * scale) // วาดรูปใหม่ลงไป
+    ctx.clearRect(0, 0, cw, ch)
+    ctx.drawImage(img, x, y, iw * scale, ih * scale)
+    lastDrawnFrameRef.current = clampedIndex
   }
 
-  /**
-   * ฟังก์ชัน requestFrameDraw
-   * ทำหน้าที่คุมรอบการเรนเดอร์ (Throttle) ให้สอดคล้องกับขีดจำกัดของหน้าจอ (60Hz / 120Hz)
-   * ป้องกันการเรียกฟังก์ชัน drawFrame ถี่เกินความจำเป็นในเฟรมเดียวกัน ซึ่งจะกินสเปคเครื่องมาก
-   */
   const requestFrameDraw = (frameIndex: number) => {
     if (renderRequestedRef.current) return
     renderRequestedRef.current = true
 
-    // ขอคิวจากเบราว์เซอร์ในการวาดรูปรอบถัดไปเมื่อหน้าจอวาดภาพเสร็จพอดี (ช่วยรักษาขีด 60fps ได้นิ่งมาก)
     requestAnimationFrame(() => {
       drawFrame(frameIndex)
       renderRequestedRef.current = false
@@ -146,160 +153,145 @@ export function useImageSequence({
     const trigger = containerRef.current
     if (!canvas || !trigger) return
 
-    // 1. วิเคราะห์ข้อมูลความแรงเครื่องของผู้ใช้งาน
+    let cancelled = false
     const profile = detectDeviceProfile()
-    const { frameStep, prefix } = profile
+    const frameIndices = Array.from(
+      { length: Math.ceil(totalFrames / profile.frameStep) },
+      (_, index) => Math.min(index * profile.frameStep, totalFrames - 1)
+    )
 
-    // 2. สร้างลิสต์ของ index ที่ต้องดึงมาโหลด (ตามเกณฑ์ Downsampling)
-    const frameIndices: number[] = []
-    for (let i = 0; i < totalFrames; i += frameStep) {
-      frameIndices.push(i)
+    if (frameIndices[frameIndices.length - 1] !== totalFrames - 1) {
+      frameIndices.push(totalFrames - 1)
     }
 
-    const loadedFramesCount = frameIndices.length
-    let loadedCount = 0
-    let decodePromises: Promise<void>[] = []
+    imagesRef.current = new Array(frameIndices.length)
+    isLoadedRef.current = false
+    lastDrawnFrameRef.current = -1
 
-    // ตรวจสอบความคืบหน้าของการดาวน์โหลดและดีโค้ดรูปภาพ
-    const checkLoadingProgress = () => {
-      loadedCount++
-      const percentage = Math.round((loadedCount / loadedFramesCount) * 100)
-      if (onProgress) onProgress(percentage)
-
-      // เมื่อทุกเฟรมภาพถูกโหลดและประมวลผลเสร็จสิ้น
-      if (loadedCount === loadedFramesCount) {
-        isLoadedRef.current = true
-        // วาดเฟรมแรกให้ผู้ใช้เห็นทันทีแบบไร้รอยต่อ
-        requestFrameDraw(0)
-        if (onReady) onReady()
-      }
-    }
-
-    // ฟังก์ชันจัดการปรับขนาด Canvas ให้ตอบรับการยืดหดของหน้าจอแบบ Responsive (รวมถึงการซัพพอร์ตจอเรตินา High-DPI)
     const handleResize = () => {
-      if (!canvas) return
-      // dpr (devicePixelRatio) สูงสุดจำกัดที่ 2x เพื่อไม่ให้การ์ดจอมือถือทำงานหนักเกินความจำเป็น (ถ้าดึงเต็ม 3x จะกระตุกมาก)
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const rect = canvas.getBoundingClientRect()
-      
-      canvas.width = rect.width * dpr
-      canvas.height = rect.height * dpr
-      
+      const width = Math.max(1, Math.floor(rect.width * profile.dpr))
+      const height = Math.max(1, Math.floor(rect.height * profile.dpr))
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width
+        canvas.height = height
+      }
+
       const ctx = canvas.getContext("2d")
       if (ctx) {
-        ctx.imageSmoothingEnabled = true          // เปิดใช้งานระบบเกลี่ยรอยภาพหยักให้เรียบเนียน
-        ctx.imageSmoothingQuality = "high"       // เลือกโหมดคุณภาพสูงของการเกลี่ยขอบภาพ
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = profile.quality
       }
-      
-      // สั่งเรนเดอร์เฟรมปัจจุบันซ้ำทันทีเพื่อให้รูปไม่แตกหรือยืดหลังปรับขนาดจอ
+
+      lastDrawnFrameRef.current = -1
       drawFrame(Math.round(playheadRef.current.frame))
     }
 
-    window.addEventListener("resize", handleResize)
-    handleResize() // เรียกใช้ครั้งแรกเพื่อจัดเตรียมไซส์เริ่มต้น
-
-    // 3. เริ่มทำการ Preload รูปภาพทั้งหมด
-    const preloadedImages = frameIndices.map((originalIndex) => {
-      const img = new Image()
+    const loadImage = (originalIndex: number, targetIndex: number) => {
       const paddedIndex = String(originalIndex).padStart(padLength, "0")
-      
-      let hasFailed = false
-      let progressed = false
+      const src = `${profile.prefix}${paddedIndex}.webp`
+      const fallbackSrc = `${highPrefix}${paddedIndex}.webp`
 
-      const handleImageLoad = () => {
-        if (progressed) return
-        progressed = true
-        checkLoadingProgress()
-      }
+      return new Promise<void>((resolve) => {
+        const img = new Image()
+        let triedFallback = false
 
-      const handleImageError = () => {
-        // หากไฟล์แบบย่อ (low-res) โหลดไม่สำเร็จ ให้สลับมาดึงภาพความละเอียดสูง (highPrefix) ทดแทน
-        if (!hasFailed && prefix === lowPrefix) {
-          hasFailed = true
-          console.warn(`[ImageSequence] โหลดภาพแบบย่อไม่สำเร็จเฟรมที่ ${paddedIndex} กำลังดึงไฟล์ภาพความละเอียดสูงทดแทน (Fallback Retry)...`)
-          img.src = `${highPrefix}${paddedIndex}.webp`
-        } else {
-          console.error(`[ImageSequence] โหลดภาพล้มเหลวเฟรมที่ ${paddedIndex} ทุกช่องทาง`)
-          // เรียก Callback เพื่อล้างคิวโหลด ให้บราวเซอร์ยังสามารถทำงานต่อได้ (Loader ไม่ค้าง)
-          if (!progressed) {
-            progressed = true
-            checkLoadingProgress()
+        img.decoding = "async"
+        img.onload = async () => {
+          try {
+            await img.decode?.()
+          } catch {
+            // The image is already loaded; drawImage can still use it.
           }
+
+          if (cancelled) return resolve()
+          imagesRef.current[targetIndex] = img
+
+          if (targetIndex === 0) {
+            requestFrameDraw(0)
+          }
+
+          resolve()
         }
-      }
 
-      img.onload = handleImageLoad
-      img.onerror = handleImageError
+        img.onerror = () => {
+          if (!triedFallback && src !== fallbackSrc) {
+            triedFallback = true
+            img.src = fallbackSrc
+            return
+          }
 
-      // เริ่มการโหลด path แรก
-      img.src = `${prefix}${paddedIndex}.webp`
+          resolve()
+        }
 
-      // [ทีเด็ดลดอาการกระตุก] ใช้ฟังก์ชัน img.decode() ซึ่งจะบอกเบราว์เซอร์ให้ทำการ "ดีโค้ดภาพแปลความหมายเป็นบิตแมป"
-      // บนเทรดข้างหลัง (Background Thread) ล่วงหน้าก่อนที่จะส่งไปวาด
-      if (typeof img.decode === "function") {
-        img.decode()
-          .then(() => {
-            handleImageLoad()
-          })
-          .catch(() => {
-            // จัดการความล้มเหลวด้วยระบบ onload / onerror มาตรฐาน
-          })
-      }
+        img.src = src
+      })
+    }
 
-      return img
-    })
+    const preload = async () => {
+      let nextIndex = 0
+      let completed = 0
+      const workers = Array.from({ length: profile.concurrency }, async () => {
+        while (!cancelled && nextIndex < frameIndices.length) {
+          const targetIndex = nextIndex
+          const frameIndex = frameIndices[nextIndex]
+          nextIndex += 1
+          await loadImage(frameIndex, targetIndex)
+          completed += 1
+          onProgressRef.current?.(Math.round((completed / frameIndices.length) * 100))
+        }
+      })
 
-    imagesRef.current = preloadedImages
+      await Promise.all(workers)
+      if (cancelled) return
 
-    // 4. ติดตั้ง GSAP ScrollTrigger
-    // ผูก ScrollTrigger เข้ากับเข็มหัวเล่นแผ่นเสียง (playheadRef) เมื่อมีแรงเลื่อนเมาส์ พร้อมปักหมุดหน้าจอ
+      const loadedImages = imagesRef.current.filter(Boolean)
+      imagesRef.current = loadedImages
+      isLoadedRef.current = loadedImages.length > 0
+      playheadRef.current.frame = 0
+      requestFrameDraw(0)
+      onReadyRef.current?.()
+    }
+
+    window.addEventListener("resize", handleResize, { passive: true })
+    handleResize()
+    preload()
+
     scrollTriggerRef.current = ScrollTrigger.create({
-      trigger: trigger,
-      start: "top top",      // เริ่มขยับเฟรมแรกเมื่อด้านบนสุดของปุ่มเลื่อนมาชนด้านบนสุดของหน้าจอ
-      end: "+=350%",         // ปักหมุดตรึงไว้เป็นความยาวสกรอลล์ 350% ของ viewport
-      pin: true,             // สั่งปักหมุดตรึงหน้าจอ HeroSection Natively
-      pinSpacing: true,      // ดันเนื้อหาคอนเทนต์ส่วนอื่นลงไปด้านล่างของพื้นที่สกรอลล์จริง
-      scrub: 0.15,           // ใส่แรงหน่วงเพื่อให้ภาพเลื่อนสมูท ไหลลื่นดูพรีเมียม (Lag Scrub)
+      trigger,
+      start: "top top",
+      end: profile.scrollLength,
+      pin: true,
+      pinSpacing: true,
+      scrub: profile.isWeak ? 0.05 : 0.15,
+      anticipatePin: 1,
       onUpdate: (self) => {
         if (!isLoadedRef.current) return
-        
-        // คำนวณหาเฟรมภาพที่ควรแสดงตามเปอร์เซ็นต์ความก้าวหน้าการเลื่อนสกรอลล์ (progress)
-        const progressIndex = self.progress * (loadedFramesCount - 1)
-        const frameIndex = Math.round(progressIndex)
-        
-        // เปลี่ยนแปลงเฟรมก็ต่อเมื่อดัชนีภาพขยับจริง เพื่อเซฟความร้อนการ์ดจอ
+
+        const frameIndex = Math.round(self.progress * (Math.max(imagesRef.current.length, 1) - 1))
         if (frameIndex !== playheadRef.current.frame) {
           playheadRef.current.frame = frameIndex
-          requestFrameDraw(frameIndex) // วาดภาพบน Canvas แบบจำกัดเฟรมเรต
+          requestFrameDraw(frameIndex)
         }
       },
     })
 
-    // 5. Cleanup Logic (ฟังก์ชันเคลียร์เมมโมรี่ ป้องกันปัญหา Memory Leak ซึ่งเป็นจุดอ่อนใหญ่ของ Image Sequence)
     return () => {
+      cancelled = true
       window.removeEventListener("resize", handleResize)
-
-      // ปิดการใช้งาน ScrollTrigger เมื่อ Component สลายไป ป้องกันการอ้างอิงค้างคาในหน่วยความจำ
-      if (scrollTriggerRef.current) {
-        scrollTriggerRef.current.kill()
-        scrollTriggerRef.current = null
-      }
-
-      // ลบล้างข้อมูล Source ของรูปภาพเพื่อเคลียร์ขยะออกจาก RAM ทันที
+      scrollTriggerRef.current?.kill()
+      scrollTriggerRef.current = null
       imagesRef.current.forEach((img) => {
         img.onload = null
         img.onerror = null
         img.src = ""
       })
       imagesRef.current = []
-
-      // บังคับเคลียร์ขยะหน่วยความจำบนการ์ดจอ (VRAM) โดยเปลี่ยนไซส์ Canvas ให้เป็นศูนย์
-      if (canvas) {
-        canvas.width = 0
-        canvas.height = 0
-      }
+      canvas.width = 0
+      canvas.height = 0
     }
-  }, [totalFrames, highPrefix, lowPrefix, padLength])
+  }, [canvasRef, containerRef, totalFrames, highPrefix, lowPrefix, padLength])
 
   return {
     playhead: playheadRef,
@@ -307,4 +299,5 @@ export function useImageSequence({
     drawFrame,
   }
 }
+
 export default useImageSequence
